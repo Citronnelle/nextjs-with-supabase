@@ -4,20 +4,10 @@ import { createClient } from "@/utils/supabase/server";
 import { SubmitButton } from "@/components/submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { insertTodoAction } from "./todo-actions";
 
 export default async function ServerTodos() {
   const supabase = createClient();
-
-  type Todo = {
-    id: string;
-    title: string;
-    priority: number;
-    created_at: number;
-    updated_at: number | null;
-    deleted_at: number | null;
-    user_id: string;
-  };
-
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -26,43 +16,16 @@ export default async function ServerTodos() {
     let { data: todos, error } = await supabase
       .from("todos")
       .select("*")
-      .is("deleted_at", null);
-    if (error) console.log(error);
+      .is("deleted_at", null)
+      .order("priority", { ascending: true })
+      .order("title", { ascending: true });
+
+    if (error) console.log(error.code + " " + error.message);
 
     return todos;
   };
 
-  const addTodo = async (todo: Todo) => {
-    let { data: todos, error } = await supabase.from("todos").insert({
-      title: todo.title,
-      priority: todo.priority,
-    });
-    if (error) console.log(error);
-  };
-
-  const editTodo = async (todo: Todo) => {
-    let { data: todos, error } = await supabase
-      .from("todos")
-      .update({
-        title: todo.title,
-        priority: todo.priority,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", todo.id);
-    if (error) console.log(error);
-  };
-
-  const deleteTodo = async (todo: Todo) => {
-    let { data: todos, error } = await supabase
-      .from("todos")
-      .update({
-        deleted_at: new Date().toISOString(),
-      })
-      .eq("id", todo.id);
-    if (error) console.log(error);
-  };
-
-  let todos = await fetchTodos();
+  const todos = await fetchTodos();
 
   return (
     <>
@@ -71,7 +34,16 @@ export default async function ServerTodos() {
         {!todos || todos.length === 0 ? (
           <h3>No todos found</h3>
         ) : (
-          <pre>{JSON.stringify(todos, null, 2)}</pre>
+          /* <pre>{JSON.stringify(todos, null, 2)}</pre> */
+          todos.map((t) => (
+            <div
+              key={t.id}
+              className="button-group"
+              style={{ display: "inline-flex", gap: "8px" }}
+            >
+              <b>{t.title}</b> | <b>{t.priority}</b>
+            </div>
+          ))
         )}
         {user ? (
           <form className="flex-1 flex flex-col min-w-64">
@@ -80,7 +52,12 @@ export default async function ServerTodos() {
               <Input name="title" required />
               <Label htmlFor="priority">Priority</Label>
               <Input type="number" name="priority" required />
-              <SubmitButton pendingText="Lisamine...">LISA</SubmitButton>
+              <SubmitButton
+                pendingText="Saving..."
+                formAction={insertTodoAction}
+              >
+                {"ADD"}
+              </SubmitButton>
             </div>
           </form>
         ) : null}
