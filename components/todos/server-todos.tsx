@@ -4,10 +4,43 @@ import { createClient } from "@/utils/supabase/server";
 import { SubmitButton } from "@/components/submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { insertTodoAction } from "./todo-actions";
+import {
+  deleteTodoAction,
+  insertTodoAction,
+  updateTodoAction,
+} from "./todo-actions";
+import { Todo } from "./todo-entity";
 
-export default async function ServerTodos() {
+export default async function ServerTodos({
+  searchParams,
+}: {
+  searchParams: any;
+}) {
   const supabase = createClient();
+
+  const id = searchParams?.id || null;
+  const resetKey = searchParams?.resetKey || "";
+
+  let currentTodo: Todo | null = null;
+
+  console.log("id: " + id);
+  console.log("resetKey: " + resetKey);
+  if (resetKey != "") {
+    currentTodo = null;
+  } else if (id) {
+    const { data, error } = await supabase
+      .from("todos")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (error) {
+      console.log(error.code + " " + error.message);
+    } else {
+      currentTodo = data;
+    }
+  }
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -41,22 +74,44 @@ export default async function ServerTodos() {
               className="button-group"
               style={{ display: "inline-flex", gap: "8px" }}
             >
-              <b>{t.title}</b> | <b>{t.priority}</b>
+              <b>{t.title}</b> | <b>{t.priority}</b> |
+              <form method="GET">
+                <Input type="hidden" name="id" value={t.id} />
+                <button type="submit">EDIT</button>
+              </form>{" "}
+              |
+              <form method="POST">
+                <Input type="hidden" name="id" value={t.id} />
+                <SubmitButton type="submit" formAction={deleteTodoAction}>
+                  DELETE
+                </SubmitButton>
+              </form>
             </div>
           ))
         )}
         {user ? (
           <form className="flex-1 flex flex-col min-w-64">
             <div className="flex flex-col gap-2 [&>input]:mb-3 mt-8">
+              <Input type="hidden" name="id" value={currentTodo?.id ?? ""} />
+              <Input type="hidden" name="resetKey" value={id ?? ""} />
               <Label htmlFor="title">Title</Label>
-              <Input name="title" required />
+              <Input
+                name="title"
+                defaultValue={currentTodo?.title ?? ""}
+                required
+              />
               <Label htmlFor="priority">Priority</Label>
-              <Input type="number" name="priority" required />
+              <Input
+                type="number"
+                name="priority"
+                defaultValue={currentTodo?.priority ?? 0}
+                required
+              />
               <SubmitButton
                 pendingText="Saving..."
-                formAction={insertTodoAction}
+                formAction={currentTodo ? updateTodoAction : insertTodoAction}
               >
-                {"ADD"}
+                {currentTodo ? "EDIT" : "ADD"}
               </SubmitButton>
             </div>
           </form>

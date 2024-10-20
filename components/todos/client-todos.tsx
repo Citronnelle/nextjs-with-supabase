@@ -7,6 +7,8 @@ import { UUID } from "crypto";
 import { SubmitButton } from "@/components/submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Button } from "../ui/button";
+import { Todo } from "./todo-entity";
 
 export default function ClientTodos() {
   //const router = useRouter();
@@ -52,15 +54,78 @@ export default function ClientTodos() {
 
   const addTodo = async () => {
     if (!user) return;
-    const { data, error } = await supabase
+    if (id) {
+      editTodo();
+    } else {
+      const { data, error } = await supabase
+        .from("todos")
+        .insert({
+          title: title,
+          priority: priority,
+        })
+        .select();
+
+      if (error) console.log(error.code + " " + error.message);
+
+      //router.refresh();
+      fetchTodos();
+      resetForm();
+    }
+  };
+
+  const editTodo = async () => {
+    if (!user) return;
+    if (!id) {
+      addTodo();
+    } else {
+      let { data, error } = await supabase
+        .from("todos")
+        .update({
+          title: title,
+          priority: priority,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", id);
+
+      if (error) console.log(error.code + " " + error.message);
+
+      fetchTodos();
+      resetForm();
+    }
+  };
+
+  const deleteTodo = async (id: UUID) => {
+    if (!user || !id) return;
+    console.log(id);
+    let { data, error } = await supabase
       .from("todos")
-      .insert({ title: title, priority: priority })
-      .select();
+      .update({
+        deleted_at: new Date().toISOString(),
+      })
+      .eq("id", id);
 
     if (error) console.log(error.code + " " + error.message);
 
-    //router.refresh();
     fetchTodos();
+    resetForm();
+  };
+
+  const setToEdit = (todo: Todo) => {
+    setId(todo.id);
+    setTitle(todo.title);
+    setPriority(todo.priority);
+
+    //router.refresh();
+  };
+
+  const initiateDelete = (id: UUID) => {
+    deleteTodo(id);
+  };
+
+  const resetForm = () => {
+    setId(null);
+    setTitle("");
+    setPriority(0);
   };
 
   return (
@@ -73,7 +138,9 @@ export default function ClientTodos() {
           /* <pre>{JSON.stringify(todos, null, 2)}</pre> */
           todos.map((t) => (
             <p key={t.id}>
-              <b>{t.title}</b> | <b>{t.priority}</b>
+              <b>{t.title}</b> | <b>{t.priority}</b> |{" "}
+              <Button onClick={() => setToEdit(t)}>EDIT</Button> |{" "}
+              <Button onClick={() => initiateDelete(t.id)}>DELETE</Button>
             </p>
           ))
         )}
@@ -95,8 +162,11 @@ export default function ClientTodos() {
                 required
                 onChange={(ev) => setPriority(parseInt(ev.target.value) ?? 0)}
               />
-              <SubmitButton pendingText="Saving..." formAction={addTodo}>
-                ADD
+              <SubmitButton
+                pendingText="Saving..."
+                formAction={id ? editTodo : addTodo}
+              >
+                {id ? "EDIT" : "ADD"}
               </SubmitButton>
             </div>
           </form>
