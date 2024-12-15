@@ -35,3 +35,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# PS scripts
+supabase_cleanup_start.ps1
+
+# Migrations
+/supabase/migrations
