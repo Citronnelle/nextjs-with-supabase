@@ -22,20 +22,10 @@ export default function ClientTodos() {
   const [priority, setPriority] = useState<number | null>();
 
   useEffect(() => {
-    getUser();
     fetchTodos();
 
     // (() => console.log("hi"))();
   }, []);
-
-  const getUser = async () => {
-    let { data: user, error } = await supabase.auth.getUser();
-    if (error) {
-      console.log("No user detected");
-    } else {
-      setUser(user);
-    }
-  };
 
   const fetchTodos = async () => {
     let { data: todos, error } = await supabase

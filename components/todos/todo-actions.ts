@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect, RedirectType } from "next/navigation";
 
 export const insertTodoAction = async (formData: FormData) => {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   let title = formData.get("title") as string;
   let priority = parseInt(formData.get("priority") as string);
@@ -21,7 +21,7 @@ export const insertTodoAction = async (formData: FormData) => {
 };
 
 export const updateTodoAction = async (formData: FormData) => {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   let id = formData.get("id") as string;
   let title = formData.get("title") as string;
@@ -44,7 +44,7 @@ export const updateTodoAction = async (formData: FormData) => {
 };
 
 export const deleteTodoAction = async (formData: FormData) => {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   let id = formData.get("id") as string;
 

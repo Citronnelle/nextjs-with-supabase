@@ -16,15 +16,14 @@ export default async function ServerTodos({
 }: {
   searchParams: any;
 }) {
-  const supabase = createClient();
+  const params = await searchParams;
+  const supabase = await createClient();
 
-  const id = searchParams?.id || null;
+  const id = params?.id || null;
   const resetKey = searchParams?.resetKey || "";
 
   let currentTodo: Todo | null = null;
 
-  console.log("id: " + id);
-  console.log("resetKey: " + resetKey);
   if (resetKey != "") {
     currentTodo = null;
   } else if (id) {
