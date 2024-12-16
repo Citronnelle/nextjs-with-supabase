@@ -7,14 +7,12 @@ export default async function Index({ searchParams }: { searchParams: any }) {
 
   return (
     <>
-      <div className="flex flex-col">
-        <div className="flex flex-row">
-          <div className="flex-1 bg-blue-100 p-4">
-            <ServerTodos searchParams={params} />
-          </div>
-          <div className="flex-1 bg-orange-100 p-4">
-            <ClientTodos />
-          </div>
+      <div className="flex flex-row gap-4">
+        <div className="flex-1 bg-blue-100 p-4">
+          <ServerTodos searchParams={params} />
+        </div>
+        <div className="flex-1 bg-orange-100 p-4">
+          <ClientTodos />
         </div>
       </div>
     </>

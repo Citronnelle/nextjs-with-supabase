@@ -9,79 +9,86 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "../ui/button";
 import { Todo } from "./todo-entity";
+import { useUser } from "@/app/context-provider";
 
 export default function ClientTodos() {
   //const router = useRouter();
   const supabase = createClient();
+  const { user } = useUser();
 
-  const [user, setUser] = useState<any | null>();
   const [todos, setTodos] = useState<any[] | null>([]);
-
   const [id, setId] = useState<UUID | null>();
-  const [title, setTitle] = useState<string | null>();
-  const [priority, setPriority] = useState<number | null>();
+  const [title, setTitle] = useState<string>("");
+  const [priority, setPriority] = useState<number>(0);
 
   useEffect(() => {
-    fetchTodos();
+    if (user) {
+      fetchTodos();
+    }
 
     // (() => console.log("hi"))();
-  }, []);
+  }, [user]);
 
   const fetchTodos = async () => {
     let { data: todos, error } = await supabase
       .from("todos")
       .select("*")
       .is("deleted_at", null)
+      .eq("user_id", user?.id)
       .order("priority", { ascending: true })
       .order("title", { ascending: true });
 
     if (error) {
-      console.log("Could not fetch TODOs");
+      console.log("Could not fetch TODOs: " + error.message);
+      alert("Failed to fetch TODOs. Please refresh the page");
     } else {
-      setTodos(todos);
+      setTodos(todos || []);
     }
   };
 
   const addTodo = async () => {
     if (!user) return;
-    if (id) {
-      editTodo();
-    } else {
-      const { data, error } = await supabase
-        .from("todos")
-        .insert({
-          title: title,
-          priority: priority,
-        })
-        .select();
 
-      if (error) console.log(error.code + " " + error.message);
+    const { data, error } = await supabase
+      .from("todos")
+      .insert({
+        title: title,
+        priority: priority,
+        user_id: user?.id,
+      })
+      .select();
 
-      //router.refresh();
-      fetchTodos();
-      resetForm();
+    if (error) {
+      console.log(error.code + " " + error.message);
+      alert("Failed to add TODO");
     }
+
+    //router.refresh();
+    fetchTodos();
+    resetForm();
   };
 
   const editTodo = async () => {
-    if (!user) return;
-    if (!id) {
-      addTodo();
-    } else {
-      let { data, error } = await supabase
-        .from("todos")
-        .update({
-          title: title,
-          priority: priority,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", id);
+    if (!user || !id) return;
 
-      if (error) console.log(error.code + " " + error.message);
+    let { data, error } = await supabase
+      .from("todos")
+      .update({
+        title: title,
+        priority: priority,
+        updated_at: new Date().toISOString(),
+        user_id: user?.id,
+      })
+      .eq("user_id", user?.id)
+      .eq("id", id);
 
-      fetchTodos();
-      resetForm();
+    if (error) {
+      console.log(error.code + " " + error.message);
+      alert("Failed to update TODO");
     }
+
+    fetchTodos();
+    resetForm();
   };
 
   const deleteTodo = async (id: UUID) => {
@@ -91,13 +98,18 @@ export default function ClientTodos() {
       .from("todos")
       .update({
         deleted_at: new Date().toISOString(),
+        user_id: user?.id,
       })
+      .eq("user_id", user?.id)
       .eq("id", id);
 
-    if (error) console.log(error.code + " " + error.message);
+    if (error) {
+      console.log(error.code + " " + error.message);
+      alert("Failed to delete TODO");
+    }
 
     fetchTodos();
-    resetForm();
+    //resetForm();
   };
 
   const setToEdit = (todo: Todo) => {
@@ -106,10 +118,6 @@ export default function ClientTodos() {
     setPriority(todo.priority);
 
     //router.refresh();
-  };
-
-  const initiateDelete = (id: UUID) => {
-    deleteTodo(id);
   };
 
   const resetForm = () => {
@@ -121,17 +129,35 @@ export default function ClientTodos() {
   return (
     <>
       <main className="flex-1 flex flex-col gap-6 px-4">
-        <h1>Client TODOs</h1>
+        <h2 className="text-xl font-bold">Client TODOs</h2>
         {!todos || todos.length === 0 ? (
           <h3>No todos found</h3>
         ) : (
           /* <pre>{JSON.stringify(todos, null, 2)}</pre> */
           todos.map((t) => (
-            <p key={t.id}>
-              <b>{t.title}</b> | <b>{t.priority}</b> |{" "}
-              <Button onClick={() => setToEdit(t)}>EDIT</Button> |{" "}
-              <Button onClick={() => initiateDelete(t.id)}>DELETE</Button>
-            </p>
+            <div
+              key={t.id}
+              className="grid grid-cols-[2fr_1fr_auto_auto] gap-4 items-center bg-gray-50 p-2 rounded-md"
+            >
+              <span className="font-medium truncate">{t.title}</span>
+              <span className="text-gray-500">⭐️ {t.priority}</span>
+              <div className="flex justify-end gap-2">
+                <Button
+                  onClick={() => setToEdit(t)}
+                  className="bg-orange-100 hover:bg-orange-200 text-orange-700 py-1 px-3 rounded"
+                  title="Edit"
+                >
+                  ✏️
+                </Button>
+                <Button
+                  onClick={() => deleteTodo(t.id)}
+                  className="bg-red-200 hover:bg-red-300 text-red-700 py-1 px-3 rounded"
+                  title="Delete"
+                >
+                  ❌
+                </Button>
+              </div>
+            </div>
           ))
         )}
         {user ? (
@@ -155,8 +181,21 @@ export default function ClientTodos() {
               <SubmitButton
                 pendingText="Saving..."
                 formAction={id ? editTodo : addTodo}
+                className={`py-2 px-4 rounded text-white font-semibold transition-colors ${
+                  id
+                    ? "bg-orange-500 hover:bg-orange-600"
+                    : "bg-green-500 hover:bg-green-600"
+                }`}
+                title={`${id ? "Edit" : "Add"}`}
               >
-                {id ? "EDIT" : "ADD"}
+                {id ? (
+                  "🖉 EDIT"
+                ) : (
+                  <>
+                    <span className="font-extrabold text-xl">＋</span>{" "}
+                    <span>ADD</span>
+                  </>
+                )}
               </SubmitButton>
             </div>
           </form>

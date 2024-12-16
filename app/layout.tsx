@@ -55,7 +55,7 @@ export default async function RootLayout({
                     {!hasEnvVars ? <EnvVarWarning /> : <HeaderAuth />}
                   </div>
                 </nav>
-                <div className="flex flex-col gap-20 max-w-5xl p-5">
+                <div className="flex flex-col gap-4 max-w-5xl p-5">
                   <div className="bg-gray-200 text-center py-4">
                     <DisplayUser />
                   </div>
