@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 export default async function ResetPassword({
   searchParams,
 }: {
-  searchParams: Message;
+  searchParams: Promise<Message>;
 }) {
   const params = await searchParams;
 

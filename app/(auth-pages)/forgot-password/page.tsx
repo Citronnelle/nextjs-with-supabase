@@ -9,7 +9,7 @@ import { SmtpMessage } from "../smtp-message";
 export default async function ForgotPassword({
   searchParams,
 }: {
-  searchParams: Message;
+  searchParams: Promise<Message>;
 }) {
   const params = await searchParams;
 
